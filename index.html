@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Times Tables">
+<title>Times Tables Talk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fff6e5;
+  --panel: #ffffff;
+  --ink: #231f4f;
+  --muted: #6b678f;
+  --line: #e6dcc6;
+  --sun: #ffb800;
+  --sun-ink: #231f4f;
+  --good: #14a86b;
+  --bad: #e5484d;
+  --dot: #ff7a59;
+  --dot-off: #f0e4cc;
+  --accent: #5b4bff;
+  --accent-ink: #ffffff;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1745; --panel: #26225f; --ink: #fff6e5; --muted: #a9a5d6; --line: #3a3580;
+    --sun: #ffc933; --good: #3ddc97; --bad: #ff6b6b; --dot: #ffc933; --dot-off: #343071;
+    --accent: #8f84ff; --accent-ink: #1a1745;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1a1745; --panel: #26225f; --ink: #fff6e5; --muted: #a9a5d6; --line: #3a3580;
+  --sun: #ffc933; --good: #3ddc97; --bad: #ff6b6b; --dot: #ffc933; --dot-off: #343071;
+  --accent: #8f84ff; --accent-ink: #1a1745;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Fredoka", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+  font-size: 18px; line-height: 1.35;
+  overflow-x: hidden;
+}
+main { max-width: 520px; margin: 0 auto; padding: 20px 18px 28px; min-height: 100%; display: flex; flex-direction: column; }
+h1 { font-size: 34px; line-height: 1.05; margin: 8px 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+p.sub { margin: 0 0 22px; color: var(--muted); }
+.screen { display: none; flex: 1; flex-direction: column; }
+.screen.on { display: flex; }
+
+fieldset { border: 0; padding: 0; margin: 0 0 20px; }
+legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-weight: 600; color: var(--ink); background: var(--panel);
+  border: 2px solid var(--line); border-radius: 14px; min-width: 52px; min-height: 48px; padding: 6px 14px;
+  cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+select {
+  font: inherit; font-weight: 500; color: var(--ink); background: var(--panel);
+  border: 2px solid var(--line); border-radius: 14px; min-height: 48px; padding: 6px 12px; width: 100%;
+}
+.btn {
+  font: inherit; font-weight: 700; font-size: 22px; border: 0; border-radius: 20px;
+  background: var(--sun); color: var(--sun-ink); min-height: 64px; padding: 12px 22px; width: 100%;
+  box-shadow: 0 5px 0 rgba(35,31,79,.25); cursor: pointer;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(35,31,79,.25); }
+.btn.ghost {
+  background: transparent; color: var(--ink); box-shadow: none; border: 2px solid var(--line);
+  font-size: 17px; min-height: 48px; font-weight: 600; width: auto;
+}
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* quiz */
+.top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bar { flex: 1; height: 14px; background: var(--dot-off); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 99px; transition: width .4s; }
+.count { font-weight: 600; color: var(--muted); min-width: 56px; text-align: right; }
+
+.card {
+  background: var(--panel); border: 2px solid var(--line); border-radius: 28px;
+  padding: 18px 16px 16px; text-align: center; margin-bottom: 16px;
+}
+.q { font-size: clamp(64px, 22vw, 96px); font-weight: 700; line-height: 1; letter-spacing: -0.02em; margin: 4px 0 10px; }
+.q span.x { color: var(--dot); padding: 0 .12em; }
+.grid { display: grid; gap: 4px; justify-content: center; margin: 0 auto; }
+.grid i { width: clamp(10px, 3.4vw, 15px); aspect-ratio: 1; border-radius: 50%; background: var(--dot); }
+.card.bad { animation: shake .35s; }
+.card.good { border-color: var(--good); }
+@keyframes shake { 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+@media (prefers-reduced-motion: reduce) { .card.bad { animation: none; } .bar > i { transition: none; } .mic.listen::after { animation: none; } }
+
+.micwrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 4px 0 14px; }
+.mic {
+  position: relative; width: 84px; height: 84px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; border: 0; cursor: pointer;
+}
+.mic svg { width: 38px; height: 38px; }
+.mic.listen { background: var(--good); color: #fff; }
+.mic.listen::after {
+  content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 4px solid var(--good); opacity: .6;
+  animation: pulse 1.2s ease-out infinite;
+}
+@keyframes pulse { from { transform: scale(.85); opacity: .8; } to { transform: scale(1.25); opacity: 0; } }
+.status { font-weight: 600; min-height: 1.4em; text-align: center; }
+.heard { color: var(--muted); min-height: 1.4em; text-align: center; }
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row input {
+  flex: 1; min-width: 0; font: inherit; font-size: 22px; font-weight: 600; text-align: center; color: var(--ink);
+  background: var(--panel); border: 2px solid var(--line); border-radius: 14px; min-height: 52px; padding: 4px 10px;
+}
+.row .btn { width: auto; min-height: 52px; font-size: 18px; padding: 8px 20px; box-shadow: none; }
+.tools { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.note { color: var(--muted); font-size: 15px; margin-top: 10px; text-align: center; }
+.warn { background: var(--panel); border: 2px solid var(--bad); border-radius: 14px; padding: 10px 12px; margin-bottom: 14px; display: none; font-size: 16px; }
+
+/* result */
+.big { font-size: 88px; font-weight: 700; line-height: 1; margin: 10px 0 4px; text-align: center; }
+.stars { text-align: center; font-size: 40px; letter-spacing: 6px; margin-bottom: 8px; }
+.rtext { text-align: center; color: var(--muted); margin: 0 0 24px; }
+.miss { background: var(--panel); border: 2px solid var(--line); border-radius: 18px; padding: 12px 16px; margin-bottom: 22px; }
+.miss b { display: block; margin-bottom: 4px; }
+.miss span { display: inline-block; margin: 2px 10px 2px 0; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- Setup -->
+  <section id="s-setup" class="screen on" aria-label="Setup">
+    <h1>Times Tables Talk</h1>
+    <p class="sub">Listen to the question. Say the answer out loud.</p>
+
+    <fieldset>
+      <legend>How many questions?</legend>
+      <div class="chips" id="countChips"></div>
+    </fieldset>
+    <fieldset>
+      <legend><label for="lang">Language</label></legend>
+      <select id="lang">
+        <option value="en-US">English</option>
+        <option value="fr-FR">Français</option>
+        <option value="vi-VN">Tiếng Việt</option>
+      </select>
+    </fieldset>
+
+    <div style="flex:1"></div>
+    <div class="warn" id="supportWarn"></div>
+    <button class="btn" id="startBtn">Start</button>
+    <p class="note">The first time, Safari asks to use the microphone. Tap Allow.</p>
+  </section>
+
+  <!-- Quiz -->
+  <section id="s-quiz" class="screen" aria-label="Quiz">
+    <div class="top">
+      <button class="btn ghost" id="quitBtn" aria-label="Stop the quiz">Stop</button>
+      <div class="bar" role="progressbar" aria-label="Progress"><i id="barFill"></i></div>
+      <div class="count" id="count">1/10</div>
+    </div>
+
+    <div class="warn" id="micWarn"></div>
+
+    <div class="card" id="card">
+      <div class="q" id="q" aria-live="polite">7<span class="x">×</span>8</div>
+      <div class="grid" id="dots" aria-hidden="true"></div>
+    </div>
+
+    <div class="micwrap">
+      <button class="mic" id="mic" aria-label="Tap to answer by voice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <div class="status" id="status" aria-live="polite">&nbsp;</div>
+      <div class="heard" id="heard">&nbsp;</div>
+    </div>
+
+    <form class="row" id="typeForm" onsubmit="return false">
+      <input id="typed" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Or type the answer" aria-label="Type the answer">
+      <button class="btn" id="typeGo" type="button">Answer</button>
+    </form>
+
+    <div class="tools">
+      <button class="btn ghost" id="repeatBtn">Hear again</button>
+      <button class="btn ghost" id="skipBtn">Skip</button>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="s-result" class="screen" aria-label="Result">
+    <h1 style="text-align:center">All done!</h1>
+    <div class="big" id="score">8/10</div>
+    <div class="stars" id="stars" aria-hidden="true"></div>
+    <p class="rtext" id="rtext"></p>
+    <div class="miss" id="miss" style="display:none"></div>
+    <div style="flex:1"></div>
+    <button class="btn" id="againBtn">Play again</button>
+    <div class="tools" style="justify-content:center"><button class="btn ghost" id="homeBtn">Change settings</button></div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Language packs ---------- */
+  var T = {
+    "en-US": {
+      ask: function (a, b) { return "What is " + a + " times " + b + "?"; },
+      again: ["Try again.", "Have another go."],
+      reveal: function (a, b, r) { return a + " times " + b + " is " + r + "."; },
+      noHear: "I did not hear you. Say the answer.",
+      done: function (s, n) { return "You got " + s + " out of " + n + "."; },
+      listening: "Listening…", speaking: "Listen…", tryAgain: "Try again!", right: "Yes!",
+      startAns: "Say your answer"
+    },
+    "fr-FR": {
+      ask: function (a, b) { return "Combien font " + a + " fois " + b + " ?"; },
+      again: ["Essaie encore.", "Réessaie."],
+      reveal: function (a, b, r) { return a + " fois " + b + " font " + r + "."; },
+      noHear: "Je n'ai pas entendu. Dis la réponse.",
+      done: function (s, n) { return "Tu as eu " + s + " sur " + n + "."; },
+      listening: "J'écoute…", speaking: "Écoute…", tryAgain: "Réessaie !", right: "Oui !",
+      startAns: "Dis ta réponse"
+    },
+    "vi-VN": {
+      ask: function (a, b) { return a + " nhân " + b + " bằng mấy?"; },
+      again: ["Thử lại nhé.", "Cố lên, thử lại nào."],
+      reveal: function (a, b, r) { return a + " nhân " + b + " bằng " + r + "."; },
+      noHear: "Mình chưa nghe thấy. Hãy nói đáp án.",
+      done: function (s, n) { return "Con đúng " + s + " trên " + n + " câu."; },
+      listening: "Đang nghe…", speaking: "Nghe nhé…", tryAgain: "Thử lại!", right: "Đúng rồi!",
+      startAns: "Nói đáp án"
+    }
+  };
+
+  /* ---------- Spoken number parsing (digits first, then words) ---------- */
+  var EN = { zero:0, oh:0, one:1, won:1, two:2, to:2, too:2, three:3, four:4, for:4, fore:4, five:5, six:6, seven:7, eight:8, ate:8, nine:9,
+    ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17, eighteen:18, nineteen:19,
+    twenty:20, thirty:30, forty:40, fourty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90 };
+  var FR = { zero:0, un:1, une:1, deux:2, trois:3, quatre:4, cinq:5, six:6, sept:7, huit:8, neuf:9, dix:10, onze:11, douze:12, treize:13,
+    quatorze:14, quinze:15, seize:16, vingt:20, vingts:20, trente:30, quarante:40, cinquante:50, soixante:60 };
+  var VI = { "không":0, "một":1, "mốt":1, hai:2, ba:3, "bốn":4, "tư":4, "năm":5, "lăm":5, "sáu":6, "bảy":7, "bẩy":7, "tám":8, "chín":9 };
+
+  function wordsToNumber(text, lang) {
+    var t = text.toLowerCase().replace(/[.,!?]/g, " ").replace(/-/g, " ").replace(/\s+/g, " ").trim();
+    if (!t) return null;
+    var tok = t.split(" "), i, n = 0, hit = false;
+    if (lang === "en-US") {
+      for (i = 0; i < tok.length; i++) if (EN.hasOwnProperty(tok[i])) { n += EN[tok[i]]; hit = true; }
+      return hit ? n : null;
+    }
+    if (lang === "fr-FR") {
+      for (i = 0; i < tok.length; i++) {
+        var w = tok[i];
+        if (w === "et" || w === "cent") continue;
+        if (w === "quatre" && (tok[i + 1] === "vingt" || tok[i + 1] === "vingts")) { n += 80; i++; hit = true; continue; }
+        if (FR.hasOwnProperty(w)) { n += FR[w]; hit = true; }
+      }
+      return hit ? n : null;
+    }
+    if (lang === "vi-VN") {
+      var idx = tok.indexOf("mươi");
+      if (idx > 0 && VI.hasOwnProperty(tok[idx - 1])) {
+        n = VI[tok[idx - 1]] * 10;
+        if (idx + 1 < tok.length && VI.hasOwnProperty(tok[idx + 1])) n += VI[tok[idx + 1]];
+        return n;
+      }
+      idx = tok.indexOf("mười");
+      if (idx >= 0) {
+        n = 10;
+        if (idx + 1 < tok.length && VI.hasOwnProperty(tok[idx + 1])) n += VI[tok[idx + 1]];
+        return n;
+      }
+      for (i = 0; i < tok.length; i++) if (VI.hasOwnProperty(tok[i])) return VI[tok[i]];
+      return null;
+    }
+    return null;
+  }
+  function parseSpoken(text, lang) {
+    var m = String(text).replace(/\s+/g, "").match(/\d+/);
+    if (m) return parseInt(m[0], 10);
+    return wordsToNumber(text, lang);
+  }
+
+  /* ---------- Helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function store(k, v) { try { localStorage.setItem("ttt2_" + k, v); } catch (e) {} }
+  function load(k, d) { try { var v = localStorage.getItem("ttt2_" + k); return v === null ? d : v; } catch (e) { return d; } }
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var hasTTS = "speechSynthesis" in window;
+
+  /* ---------- Audio (feedback sounds) ---------- */
+  var actx = null;
+  function unlockAudio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+    } catch (e) {}
+  }
+  function tone(freq, start, dur, type, vol) {
+    if (!actx) return;
+    var o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + start;
+    o.type = type || "sine"; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.35, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function playCorrect() { tone(523.25, 0, .16, "triangle"); tone(659.25, .12, .16, "triangle"); tone(783.99, .24, .16, "triangle"); tone(1046.5, .36, .35, "triangle"); }
+  function playWrong() { tone(220, 0, .22, "sawtooth", .18); tone(165, .18, .32, "sawtooth", .18); }
+  function playFinish() { [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5].forEach(function (f, i) { tone(f, i * .13, .2, "triangle"); }); }
+
+  /* ---------- Speech output ---------- */
+  var voices = [];
+  function refreshVoices() { if (hasTTS) voices = speechSynthesis.getVoices() || []; }
+  if (hasTTS) { refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+
+  function speak(text, lang) {
+    return new Promise(function (resolve) {
+      if (!hasTTS) { resolve(); return; }
+      var done = false;
+      function fin() { if (!done) { done = true; clearTimeout(guard); resolve(); } }
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = lang; u.rate = 0.92; u.pitch = 1.05;
+      var base = lang.split("-")[0], v = null, i;
+      for (i = 0; i < voices.length; i++) if (voices[i].lang === lang) { v = voices[i]; break; }
+      if (!v) for (i = 0; i < voices.length; i++) if (voices[i].lang.indexOf(base) === 0) { v = voices[i]; break; }
+      if (v) u.voice = v;
+      u.onend = fin; u.onerror = fin;
+      var guard = setTimeout(fin, 7000);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    });
+  }
+
+  /* ---------- State ---------- */
+  var S = { count: 15, tables: [2,3,4,5,6,7,8,9], lang: "fr-FR" };
+  var run = 0;            // increments to cancel in-flight work
+  var quiz = null;        // { qs, i, score, misses, attempts, awaiting }
+  var rec = null;
+
+  /* ---------- Setup screen ---------- */
+  function buildSetup() {
+    var cc = $("countChips");
+    [5, 10, 15, 20].forEach(function (n) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = n;
+      b.setAttribute("aria-pressed", String(n === S.count));
+      b.onclick = function () {
+        S.count = n; store("count", n);
+        Array.prototype.forEach.call(cc.children, function (c) { c.setAttribute("aria-pressed", String(c === b)); });
+      };
+      cc.appendChild(b);
+    });
+    $("lang").value = S.lang;
+    $("lang").onchange = function () { S.lang = this.value; store("lang", S.lang); document.documentElement.lang = S.lang.split("-")[0]; };
+
+    var msgs = [];
+    if (!SR) msgs.push("Voice answers need Safari on iPhone (iOS 14.5 or newer). You can still type answers.");
+    if (!hasTTS) msgs.push("Spoken questions are not supported here.");
+    if (msgs.length) { $("supportWarn").style.display = "block"; $("supportWarn").textContent = msgs.join(" "); }
+  }
+
+  function loadSettings() {
+    var c = parseInt(load("count", "15"), 10); if ([5,10,15,20].indexOf(c) >= 0) S.count = c;
+    var l = load("lang", "fr-FR"); if (T[l]) S.lang = l;
+  }
+
+  function show(id) {
+    ["s-setup", "s-quiz", "s-result"].forEach(function (s) { $(s).classList.toggle("on", s === id); });
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- Question generation ---------- */
+  function makeQuestions(n, tables) {
+    var pool = [], a, b;
+    tables.forEach(function (a) { for (b = 2; b <= 9; b++) pool.push([a, b]); });
+    // shuffle
+    for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp; }
+    var out = [];
+    while (out.length < n) {
+      var chunk = pool.slice();
+      for (var k = chunk.length - 1; k > 0; k--) { var m = Math.floor(Math.random() * (k + 1)); var t2 = chunk[k]; chunk[k] = chunk[m]; chunk[m] = t2; }
+      out = out.concat(chunk);
+    }
+    return out.slice(0, n);
+  }
+
+  /* ---------- Quiz flow ---------- */
+  function setStatus(s, h) { $("status").textContent = s || "\u00a0"; $("heard").textContent = h || "\u00a0"; }
+  function micState(on) { $("mic").classList.toggle("listen", !!on); }
+  function warnMic(msg) { var w = $("micWarn"); w.style.display = msg ? "block" : "none"; w.textContent = msg || ""; }
+
+  function stopRec() {
+    micState(false);
+    if (rec) { try { rec.onresult = rec.onerror = rec.onend = null; rec.abort(); } catch (e) {} rec = null; }
+  }
+
+  function startQuiz() {
+    unlockAudio();
+    if (hasTTS) { try { speechSynthesis.cancel(); var w = new SpeechSynthesisUtterance(" "); w.volume = 0; speechSynthesis.speak(w); } catch (e) {} }
+    run++;
+    quiz = { qs: makeQuestions(S.count, S.tables), i: 0, score: 0, misses: [], attempts: 0, listenTries: 0 };
+    warnMic("");
+    show("s-quiz");
+    askCurrent();
+  }
+
+  function renderQuestion() {
+    var q = quiz.qs[quiz.i], a = q[0], b = q[1];
+    $("q").innerHTML = a + '<span class="x">×</span>' + b;
+    $("count").textContent = (quiz.i + 1) + "/" + quiz.qs.length;
+    $("barFill").style.width = (quiz.i / quiz.qs.length * 100) + "%";
+    var g = $("dots"); g.innerHTML = "";
+    g.style.gridTemplateColumns = "repeat(" + b + ", auto)";
+    for (var k = 0; k < a * b; k++) g.appendChild(document.createElement("i"));
+    $("card").className = "card";
+    $("typed").value = "";
+  }
+
+  async function askCurrent() {
+    var my = run;
+    stopRec();
+    renderQuestion();
+    quiz.attempts = 0; quiz.listenTries = 0;
+    var q = quiz.qs[quiz.i], P = T[S.lang];
+    setStatus(P.speaking, "");
+    await speak(P.ask(q[0], q[1]), S.lang);
+    if (my !== run) return;
+    listen();
+  }
+
+  async function repeatQuestion() {
+    var my = run; if (!quiz) return;
+    stopRec();
+    var q = quiz.qs[quiz.i], P = T[S.lang];
+    setStatus(P.speaking, "");
+    await speak(P.ask(q[0], q[1]), S.lang);
+    if (my !== run) return;
+    listen();
+  }
+
+  function listen() {
+    var my = run, P = T[S.lang];
+    if (!SR) { setStatus("", ""); $("typed").focus(); return; }
+    stopRec();
+    var r = new SR(), got = false;
+    rec = r;
+    r.lang = S.lang; r.interimResults = false; r.maxAlternatives = 5; r.continuous = false;
+    r.onstart = function () { if (my === run) { micState(true); setStatus(P.listening, ""); } };
+    r.onresult = function (e) {
+      if (my !== run) return;
+      got = true;
+      var alts = [], res = e.results[e.results.length - 1];
+      for (var i = 0; i < res.length; i++) alts.push(res[i].transcript);
+      micState(false);
+      handleHeard(alts);
+    };
+    r.onerror = function (e) {
+      if (my !== run) return;
+      micState(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        got = true;
+        var framed = false;
+        try { framed = window.top !== window.self; } catch (x) { framed = true; }
+        var why = framed
+          ? "This page is embedded in another page, and Safari blocks the microphone there. Open the page on its own address (see the notes) or host the file yourself."
+          : e.error === "service-not-allowed"
+            ? "Speech recognition is off on this iPhone. Turn on Settings > General > Keyboard > Enable Dictation, and Settings > Apple Intelligence & Siri."
+            : "The microphone is blocked. In Safari, tap aA in the address bar, open Website Settings, and allow Microphone.";
+        warnMic(why + " (code: " + e.error + ") You can type answers meanwhile.");
+        setStatus("", "");
+      }
+    };
+    r.onend = function () {
+      if (my !== run || got) return;
+      micState(false);
+      quiz.listenTries++;
+      if (quiz.listenTries >= 3) {
+        setStatus("Tap the mic to answer", "");
+        return;
+      }
+      (async function () {
+        setStatus("", "");
+        await speak(P.noHear, S.lang);
+        if (my === run) listen();
+      })();
+    };
+    try { r.start(); } catch (err) { setStatus("Tap the mic to answer", ""); }
+  }
+
+  function handleHeard(alts) {
+    var q = quiz.qs[quiz.i], correct = q[0] * q[1];
+    var nums = alts.map(function (a) { return parseSpoken(a, S.lang); });
+    var shown = alts[0];
+    var ok = nums.indexOf(correct) >= 0;
+    var given = ok ? correct : nums.find(function (n) { return n !== null; });
+    $("heard").textContent = "“" + shown + "”";
+    judge(ok, given === undefined ? null : given);
+  }
+
+  async function judge(ok, given) {
+    var my = run, P = T[S.lang], q = quiz.qs[quiz.i], correct = q[0] * q[1];
+    stopRec();
+    if (ok) {
+      unlockAudio();
+      $("card").className = "card good";
+      setStatus(P.right, $("heard").textContent === "\u00a0" ? "" : $("heard").textContent);
+      playCorrect();
+      if (quiz.attempts === 0) quiz.score++; else quiz.misses.push(q);
+      $("barFill").style.width = ((quiz.i + 1) / quiz.qs.length * 100) + "%";
+      await sleep(1100);
+      if (my !== run) return;
+      nextQuestion();
+      return;
+    }
+    quiz.attempts++;
+    playWrong();
+    var card = $("card"); card.className = "card"; void card.offsetWidth; card.className = "card bad";
+    if (quiz.attempts >= 2) {
+      quiz.misses.push(q);
+      setStatus(correct + "", $("heard").textContent);
+      await sleep(500);
+      if (my !== run) return;
+      await speak(P.reveal(q[0], q[1], correct), S.lang);
+      if (my !== run) return;
+      nextQuestion();
+    } else {
+      setStatus(P.tryAgain, $("heard").textContent);
+      await sleep(500);
+      if (my !== run) return;
+      await speak(P.again[Math.floor(Math.random() * P.again.length)], S.lang);
+      if (my !== run) return;
+      quiz.listenTries = 0;
+      listen();
+    }
+  }
+
+  function nextQuestion() {
+    quiz.i++;
+    if (quiz.i >= quiz.qs.length) finish(); else askCurrent();
+  }
+
+  async function finish() {
+    var my = run, P = T[S.lang], n = quiz.qs.length, s = quiz.score;
+    stopRec();
+    $("barFill").style.width = "100%";
+    $("score").textContent = s + "/" + n;
+    var ratio = s / n, stars = ratio >= .9 ? 3 : ratio >= .6 ? 2 : ratio > 0 ? 1 : 0;
+    $("stars").textContent = "★".repeat(stars) + "☆".repeat(3 - stars);
+    $("stars").style.color = "var(--sun)";
+    $("rtext").textContent = "Right on the first try: " + s + " of " + n + ".";
+    var m = $("miss");
+    if (quiz.misses.length) {
+      var seen = {}, html = "<b>Practice these</b>";
+      quiz.misses.forEach(function (q) {
+        var key = q[0] + "x" + q[1];
+        if (!seen[key]) { seen[key] = 1; html += "<span>" + q[0] + " × " + q[1] + " = " + (q[0] * q[1]) + "</span>"; }
+      });
+      m.innerHTML = html; m.style.display = "block";
+    } else m.style.display = "none";
+    show("s-result");
+    playFinish();
+    await sleep(900);
+    if (my !== run) return;
+    await speak(P.done(s, n), S.lang);
+  }
+
+  function quit() {
+    run++; stopRec();
+    if (hasTTS) speechSynthesis.cancel();
+    show("s-setup");
+  }
+
+  /* ---------- Wire up ---------- */
+  loadSettings();
+  buildSetup();
+  document.documentElement.lang = S.lang.split("-")[0];
+
+  $("startBtn").onclick = startQuiz;
+  $("againBtn").onclick = startQuiz;
+  $("homeBtn").onclick = quit;
+  $("quitBtn").onclick = quit;
+  $("repeatBtn").onclick = function () { unlockAudio(); repeatQuestion(); };
+  $("skipBtn").onclick = function () {
+    if (!quiz) return;
+    run++; stopRec(); if (hasTTS) speechSynthesis.cancel();
+    quiz.misses.push(quiz.qs[quiz.i]);
+    nextQuestion();
+  };
+  $("mic").onclick = function () {
+    if (!quiz) return;
+    unlockAudio();
+    if (hasTTS) speechSynthesis.cancel();
+    quiz.listenTries = 0;
+    listen();
+  };
+  function submitTyped() {
+    if (!quiz) return;
+    var v = parseInt($("typed").value, 10);
+    if (isNaN(v)) return;
+    unlockAudio();
+    if (hasTTS) speechSynthesis.cancel();
+    var correct = quiz.qs[quiz.i][0] * quiz.qs[quiz.i][1];
+    $("heard").textContent = "“" + v + "”";
+    judge(v === correct, v);
+  }
+  $("typeGo").onclick = submitTyped;
+  $("typed").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitTyped(); } });
+})();
+</script>
+</body>
+</html>
