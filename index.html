@@ -153,7 +153,8 @@ select {
       <legend><label for="lang">Language</label></legend>
       <select id="lang">
         <option value="en-US">English</option>
-        <option value="fr-FR">Français</option>
+        <option value="fr-CH">Français (Suisse)</option>
+        <option value="fr-FR">Français (France)</option>
         <option value="vi-VN">Tiếng Việt</option>
       </select>
     </fieldset>
@@ -247,12 +248,14 @@ select {
     }
   };
 
+  T["fr-CH"] = T["fr-FR"];
+
   /* ---------- Spoken number parsing (digits first, then words) ---------- */
   var EN = { zero:0, oh:0, one:1, won:1, two:2, to:2, too:2, three:3, four:4, for:4, fore:4, five:5, six:6, seven:7, eight:8, ate:8, nine:9,
     ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17, eighteen:18, nineteen:19,
     twenty:20, thirty:30, forty:40, fourty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90 };
   var FR = { zero:0, un:1, une:1, deux:2, trois:3, quatre:4, cinq:5, six:6, sept:7, huit:8, neuf:9, dix:10, onze:11, douze:12, treize:13,
-    quatorze:14, quinze:15, seize:16, vingt:20, vingts:20, trente:30, quarante:40, cinquante:50, soixante:60 };
+    quatorze:14, quinze:15, seize:16, vingt:20, vingts:20, trente:30, quarante:40, cinquante:50, soixante:60, septante:70, huitante:80, octante:80, nonante:90 };
   var VI = { "không":0, "một":1, "mốt":1, hai:2, ba:3, "bốn":4, "tư":4, "năm":5, "lăm":5, "sáu":6, "bảy":7, "bẩy":7, "tám":8, "chín":9 };
 
   function wordsToNumber(text, lang) {
@@ -263,7 +266,7 @@ select {
       for (i = 0; i < tok.length; i++) if (EN.hasOwnProperty(tok[i])) { n += EN[tok[i]]; hit = true; }
       return hit ? n : null;
     }
-    if (lang === "fr-FR") {
+    if (lang.indexOf("fr") === 0) {
       for (i = 0; i < tok.length; i++) {
         var w = tok[i];
         if (w === "et" || w === "cent") continue;
@@ -350,7 +353,7 @@ select {
   }
 
   /* ---------- State ---------- */
-  var S = { count: 15, max: 9, tables: [2,3,4,5,6,7,8,9], lang: "fr-FR" };
+  var S = { count: 15, max: 9, tables: [2,3,4,5,6,7,8,9], lang: "fr-CH" };
   var run = 0;            // increments to cancel in-flight work
   var quiz = null;        // { qs, i, score, misses, attempts, awaiting }
   var rec = null;
@@ -389,7 +392,7 @@ select {
 
   function loadSettings() {
     var c = parseInt(load("count", "15"), 10); if ([5,10,15,20].indexOf(c) >= 0) S.count = c;
-    var l = load("lang", "fr-FR"); if (T[l]) S.lang = l;
+    var l = load("lang", "fr-CH"); if (T[l]) S.lang = l;
     var mx = parseInt(load("max", "9"), 10); if (mx >= 2 && mx <= 9) S.max = mx;
   }
 
@@ -497,6 +500,10 @@ select {
             ? "Speech recognition is off on this iPhone. Turn on Settings > General > Keyboard > Enable Dictation, and Settings > Apple Intelligence & Siri."
             : "The microphone is blocked. In Safari, tap aA in the address bar, open Website Settings, and allow Microphone.";
         warnMic(why + " (code: " + e.error + ") You can type answers meanwhile.");
+        setStatus("", "");
+      } else if (e.error !== "no-speech" && e.error !== "aborted") {
+        got = true;
+        warnMic("Speech recognition problem (code: " + e.error + "). Language: " + S.lang + ". You can type answers meanwhile.");
         setStatus("", "");
       }
     };
