@@ -163,9 +163,13 @@ select {
       <legend>Highest table</legend>
       <div class="chips" id="maxChips"></div>
     </fieldset>
-    <fieldset id="subOpts" style="display:none">
-      <legend>Biggest number (digits)</legend>
-      <div class="chips" id="digitChips"></div>
+    <fieldset class="subOpts" style="display:none">
+      <legend>First number (digits)</legend>
+      <div class="chips" id="digit1Chips"></div>
+    </fieldset>
+    <fieldset class="subOpts" style="display:none">
+      <legend>Second number (digits)</legend>
+      <div class="chips" id="digit2Chips"></div>
     </fieldset>
     <fieldset>
       <legend><label for="lang">Language</label></legend>
@@ -377,7 +381,7 @@ select {
   }
 
   /* ---------- State ---------- */
-  var S = { count: 15, max: 9, tables: [2,3,4,5,6,7,8,9], lang: "fr-CH", mode: "mul", subCount: 5, subDigits: 2 };
+  var S = { count: 15, max: 9, tables: [2,3,4,5,6,7,8,9], lang: "fr-CH", mode: "mul", subCount: 5, subDigits1: 2, subDigits2: 1 };
   function isSub() { return S.mode === "sub"; }
   function answerOf(q) { return isSub() ? q[0] - q[1] : q[0] * q[1]; }
   function opSign() { return isSub() ? "−" : "×"; }
@@ -403,29 +407,35 @@ select {
     });
   }
 
+  function buildDigitChips(dc, key) {
+    dc.innerHTML = "";
+    for (var d = 1; d <= 4; d++) (function (d) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = d;
+      b.setAttribute("aria-pressed", String(d === S[key]));
+      b.onclick = function () {
+        S[key] = d; store(key, d);
+        Array.prototype.forEach.call(dc.children, function (c) { c.setAttribute("aria-pressed", String(c === b)); });
+      };
+      dc.appendChild(b);
+    })(d);
+  }
+
   function openSetup(mode) {
     S.mode = mode;
     var sub = isSub();
     $("setupTitle").textContent = sub ? "Subtraction" : "Times Tables Talk";
     $("mulOpts").style.display = sub ? "none" : "";
-    $("subOpts").style.display = sub ? "" : "none";
+    Array.prototype.forEach.call(document.querySelectorAll(".subOpts"), function (f) { f.style.display = sub ? "" : "none"; });
     buildCountChips();
     show("s-setup");
   }
 
   function buildSetup() {
-    var mc = $("maxChips"), dc = $("digitChips");
+    var mc = $("maxChips");
     buildCountChips();
-    for (var d = 1; d <= 4; d++) (function (d) {
-      var b = document.createElement("button");
-      b.className = "chip"; b.type = "button"; b.textContent = d;
-      b.setAttribute("aria-pressed", String(d === S.subDigits));
-      b.onclick = function () {
-        S.subDigits = d; store("subDigits", d);
-        Array.prototype.forEach.call(dc.children, function (c) { c.setAttribute("aria-pressed", String(c === b)); });
-      };
-      dc.appendChild(b);
-    })(d);
+    buildDigitChips($("digit1Chips"), "subDigits1");
+    buildDigitChips($("digit2Chips"), "subDigits2");
     for (var t = 2; t <= 9; t++) (function (t) {
       var b = document.createElement("button");
       b.className = "chip"; b.type = "button"; b.textContent = t;
@@ -450,7 +460,8 @@ select {
     var l = load("lang", "fr-CH"); if (T[l]) S.lang = l;
     var mx = parseInt(load("max", "9"), 10); if (mx >= 2 && mx <= 9) S.max = mx;
     var sc = parseInt(load("subCount", "5"), 10); if ([5,10,15,20].indexOf(sc) >= 0) S.subCount = sc;
-    var sd = parseInt(load("subDigits", "2"), 10); if (sd >= 1 && sd <= 4) S.subDigits = sd;
+    var sd1 = parseInt(load("subDigits1", "2"), 10); if (sd1 >= 1 && sd1 <= 4) S.subDigits1 = sd1;
+    var sd2 = parseInt(load("subDigits2", "1"), 10); if (sd2 >= 1 && sd2 <= 4) S.subDigits2 = sd2;
   }
 
   function show(id) {
@@ -473,12 +484,13 @@ select {
     return out.slice(0, n).map(function (p) { return Math.random() < 0.5 ? [p[1], p[0]] : p; });
   }
 
-  function makeSubQuestions(n, digits) {
-    var top = Math.pow(10, digits), out = [];
+  function makeSubQuestions(n, digits1, digits2) {
+    var top1 = Math.pow(10, digits1), top2 = Math.pow(10, digits2), out = [];
     while (out.length < n) {
-      var a = Math.floor(Math.random() * top), b = Math.floor(Math.random() * top);
-      if (a === b) continue;
-      out.push(a > b ? [a, b] : [b, a]);
+      var a = Math.floor(Math.random() * top1);
+      if (a === 0) continue;
+      var b = Math.floor(Math.random() * Math.min(top2, a));
+      out.push([a, b]);
     }
     return out;
   }
@@ -498,7 +510,7 @@ select {
     if (hasTTS) { try { speechSynthesis.cancel(); var w = new SpeechSynthesisUtterance(" "); w.volume = 0; speechSynthesis.speak(w); } catch (e) {} }
     run++;
     var tbls = []; for (var t = 2; t <= S.max; t++) tbls.push(t);
-    quiz = { qs: isSub() ? makeSubQuestions(S.subCount, S.subDigits) : makeQuestions(S.count, tbls), i: 0, score: 0, misses: [], attempts: 0, listenTries: 0 };
+    quiz = { qs: isSub() ? makeSubQuestions(S.subCount, S.subDigits1, S.subDigits2) : makeQuestions(S.count, tbls), i: 0, score: 0, misses: [], attempts: 0, listenTries: 0 };
     warnMic("");
     show("s-quiz");
     askCurrent();
@@ -507,7 +519,7 @@ select {
   function renderQuestion() {
     var q = quiz.qs[quiz.i], a = q[0], b = q[1];
     $("q").innerHTML = a + '<span class="x">' + opSign() + '</span>' + b;
-    $("q").classList.toggle("long", isSub() && S.subDigits >= 3);
+    $("q").classList.toggle("long", isSub() && Math.max(S.subDigits1, S.subDigits2) >= 3);
     $("count").textContent = (quiz.i + 1) + "/" + quiz.qs.length;
     $("barFill").style.width = (quiz.i / quiz.qs.length * 100) + "%";
     var g = $("dots"); g.innerHTML = "";
