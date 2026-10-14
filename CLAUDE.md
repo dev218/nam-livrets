@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Files:
 - `index.html`: landing page with links to the two quiz pages. No JS.
-- `multiplication.html`, `subtraction.html`: setup, quiz, and result screens for one operation each. `<body data-mode="mul|sub">` tells the shared script which operation it is running. Each page only contains the setup fieldsets relevant to its mode.
+- `multiplication.html`, `subtraction.html`, `addition.html`: setup, quiz, and result screens for one operation each. `<body data-mode="mul|sub|add">` tells the shared script which operation it is running. Each page only contains the setup fieldsets relevant to its mode.
 - `app.js`: all quiz logic, shared by both quiz pages.
 - `style.css`: all styling, shared by every page.
 
@@ -18,13 +18,13 @@ There is no build, package manager, linter, or test suite. Edit the files and re
 
 - Quick check: open `index.html` directly in a browser.
 - Microphone testing: serve over HTTP (e.g. `python3 -m http.server 8000`) and open on an iPhone in Safari. Speech recognition is blocked in iframes and is only available in Safari/WebKit; desktop Chrome has `SpeechRecognition` but behaves differently.
-- Settings live in `localStorage` under the `ttt2_` prefix. Clear them to reset to defaults (15 questions, tables up to 9, `fr-CH`, 5 subtraction questions, 2-digit first operand, 1-digit second operand).
+- Settings live in `localStorage` under the `ttt2_` prefix. Clear them to reset to defaults (15 multiplication questions up to table 9; 5 subtraction and 5 addition questions with a 2-digit first operand and 1-digit second operand; language `fr-CH`).
 
 ## Code structure (all inside one IIFE in `app.js`)
 
 **Screens.** Each quiz page has three `<section class="screen">` elements (`s-setup`, `s-quiz`, `s-result`); `show(id)` toggles the `on` class. Navigation back to the landing page is a plain `<a class="btn">` link, not JS. Markup is plain HTML; CSS theme is CSS variables on `:root`, with a dark variant under both `prefers-color-scheme: dark` and `[data-theme="dark"]`.
 
-**Modes.** `S.mode` is read once from `body[data-mode]`. Everything mode-specific goes through four dispatch helpers: `answerOf(q)`, `opSign()`, `askText(P, q)`, `revealText(P, q, r)`. Questions are `[a, b]` pairs; generators are `makeQuestions` (shuffled full table pool, operands randomly swapped) and `makeSubQuestions` (first operand random with up to `subDigits1` digits, second operand random with up to `subDigits2` digits and strictly smaller). Adding an operation means: a new HTML page with its own `data-mode` and setup fieldsets, a link on the landing page, new `ask*`/`reveal*` keys in every language pack, a generator, and a branch in each dispatch helper plus `startQuiz`. Chip builders in `buildSetup` skip containers that are absent from the page, so mode-specific fieldsets only need to exist in the page that uses them.
+**Modes.** `S.mode` is read once from `body[data-mode]` and `M = MODES[S.mode]` holds that operation's sign, answer function, language-pack key names, and the names of its settings in `S` (which double as `localStorage` keys). Everything mode-specific goes through `M` via `answerOf(q)`, `opSign()`, `askText(P, q)`, `revealText(P, q, r)`, and `digitsOf(i)`. Questions are `[a, b]` pairs; generators are `makeQuestions` (shuffled full table pool, operands randomly swapped), `makeSubQuestions` (second operand strictly smaller than the first), and `makeAddQuestions` (independent operands, not both zero); the two digit-based generators take per-operand digit limits. Adding an operation means: a new HTML page with its own `data-mode` and setup fieldsets, a link on the landing page, an entry in `MODES`, defaults in `S` and `loadSettings`, `ask*`/`reveal*` keys in every language pack, a generator, and a branch in `startQuiz`. Chip builders in `buildSetup` skip containers that are absent from the page, so mode-specific fieldsets only need to exist in the page that uses them.
 
 **Language packs.** `T` is keyed by BCP‑47 tag (`en-US`, `fr-FR`, `vi-VN`; `fr-CH` aliases `fr-FR`). Each pack holds the spoken prompts and the short UI status strings. Spoken-number parsing is separate: `parseSpoken` tries digits first, then `wordsToNumber`, which has per-language word tables (`EN`, `FR`, `VI`) and language-specific composition rules (French `quatre-vingt(s)` and Swiss `septante/huitante/nonante`; Vietnamese `mươi`/`mười` handling). Adding a language requires an `<option>` in `#lang`, a pack in `T`, and a parsing branch.
 
