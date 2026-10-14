@@ -4,21 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-"Math Talk": a single-file, dependency-free web app (`index.html`) that quizzes a child on times tables or subtraction by voice. The page speaks the question (Web Speech `speechSynthesis`), listens for the answer (`webkitSpeechRecognition`), and falls back to typed input. It targets Safari on iPhone; the only external resource is the Fredoka font from Google Fonts.
+"Math Talk": a dependency-free static web app that quizzes a child on times tables or subtraction by voice. The page speaks the question (Web Speech `speechSynthesis`), listens for the answer (`webkitSpeechRecognition`), and falls back to typed input. It targets Safari on iPhone; the only external resource is the Fredoka font from Google Fonts.
+
+Files:
+- `index.html`: landing page with links to the two quiz pages. No JS.
+- `multiplication.html`, `subtraction.html`: setup, quiz, and result screens for one operation each. `<body data-mode="mul|sub">` tells the shared script which operation it is running. Each page only contains the setup fieldsets relevant to its mode.
+- `app.js`: all quiz logic, shared by both quiz pages.
+- `style.css`: all styling, shared by every page.
 
 ## Running
 
-There is no build, package manager, linter, or test suite. Edit `index.html` and reload.
+There is no build, package manager, linter, or test suite. Edit the files and reload.
 
 - Quick check: open `index.html` directly in a browser.
 - Microphone testing: serve over HTTP (e.g. `python3 -m http.server 8000`) and open on an iPhone in Safari. Speech recognition is blocked in iframes and is only available in Safari/WebKit; desktop Chrome has `SpeechRecognition` but behaves differently.
 - Settings live in `localStorage` under the `ttt2_` prefix. Clear them to reset to defaults (15 questions, tables up to 9, `fr-CH`, 5 subtraction questions, 2-digit first operand, 1-digit second operand).
 
-## Code structure (all inside one IIFE in `index.html`)
+## Code structure (all inside one IIFE in `app.js`)
 
-**Screens.** Four `<section class="screen">` elements (`s-home`, `s-setup`, `s-quiz`, `s-result`); `show(id)` toggles the `on` class. Markup is plain HTML; CSS theme is CSS variables on `:root`, with a dark variant under both `prefers-color-scheme: dark` and `[data-theme="dark"]`.
+**Screens.** Each quiz page has three `<section class="screen">` elements (`s-setup`, `s-quiz`, `s-result`); `show(id)` toggles the `on` class. Navigation back to the landing page is a plain `<a class="btn">` link, not JS. Markup is plain HTML; CSS theme is CSS variables on `:root`, with a dark variant under both `prefers-color-scheme: dark` and `[data-theme="dark"]`.
 
-**Modes.** `S.mode` is `"mul"` or `"sub"`. Everything mode-specific goes through four dispatch helpers: `answerOf(q)`, `opSign()`, `askText(P, q)`, `revealText(P, q, r)`. Questions are `[a, b]` pairs; generators are `makeQuestions` (shuffled full table pool, operands randomly swapped) and `makeSubQuestions` (first operand random with up to `subDigits1` digits, second operand random with up to `subDigits2` digits and strictly smaller). Adding an operation means: a home button, a setup fieldset, new `ask*`/`reveal*` keys in every language pack, a generator, and a branch in each dispatch helper plus `startQuiz`.
+**Modes.** `S.mode` is read once from `body[data-mode]`. Everything mode-specific goes through four dispatch helpers: `answerOf(q)`, `opSign()`, `askText(P, q)`, `revealText(P, q, r)`. Questions are `[a, b]` pairs; generators are `makeQuestions` (shuffled full table pool, operands randomly swapped) and `makeSubQuestions` (first operand random with up to `subDigits1` digits, second operand random with up to `subDigits2` digits and strictly smaller). Adding an operation means: a new HTML page with its own `data-mode` and setup fieldsets, a link on the landing page, new `ask*`/`reveal*` keys in every language pack, a generator, and a branch in each dispatch helper plus `startQuiz`. Chip builders in `buildSetup` skip containers that are absent from the page, so mode-specific fieldsets only need to exist in the page that uses them.
 
 **Language packs.** `T` is keyed by BCP‑47 tag (`en-US`, `fr-FR`, `vi-VN`; `fr-CH` aliases `fr-FR`). Each pack holds the spoken prompts and the short UI status strings. Spoken-number parsing is separate: `parseSpoken` tries digits first, then `wordsToNumber`, which has per-language word tables (`EN`, `FR`, `VI`) and language-specific composition rules (French `quatre-vingt(s)` and Swiss `septante/huitante/nonante`; Vietnamese `mươi`/`mười` handling). Adding a language requires an `<option>` in `#lang`, a pack in `T`, and a parsing branch.
 
